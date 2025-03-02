@@ -1,14 +1,14 @@
-最近周末在家学习VLM大模型, 记录下自己的学习过程
+最近周末在家学习VLM大模型, 记录下自己的学习过程。
 
-模型部署
-模型微调 & 导出
-部署微调模型
+* 模型部署
+* 模型微调 & 导出
+* 部署微调模型
 
 本文以OCR任务为例，识别图片中的文字并以json格式输出。
 
 ![alt text](images/image.png)
 
-# 模型部署
+# 1 模型部署
 ## Ollama vs vllm
 
 ollama 是一个开源框架，专为在本地机器上便捷部署和运行大型语言模型（LLM）而设计。
@@ -41,7 +41,7 @@ vllm serve Qwen/Qwen2.5-VL-3B-Instruct
 vllm serve Qwen/Qwen2.5-VL-7B-Instruct --gpu-memory-utilization 0.9 --max-model-len 8192 --limit-mm-per-prompt "image=2"
 ```
 
-## 模型微调 & 导出
+# 2 模型微调 & 导出
 目前常用的微调工具包:
 * huggingface transformers
 * llama-factory
@@ -50,22 +50,26 @@ vllm serve Qwen/Qwen2.5-VL-7B-Instruct --gpu-memory-utilization 0.9 --max-model-
 
 使用huggingface transformers进行微调扩展性最强，但是通用性太差，每换一个模型都要重新写一套代码，个人不建议这么用。想试试可以参考https://github.com/roboflow/notebooks/blob/main/notebooks/how-to-finetune-qwen2-5-vl-for-json-data-extraction.ipynb
 
-llama-factory、unsloth、ms-swift都是有图形界面的，可以轻松完整模型微调任务， 可以把重心放到数据上。我个人比较喜欢llama-factory。
+llama-factory、unsloth、ms-swift都是有图形界面的，可以轻松完整模型微调任务，可以把重心放到数据上。我个人比较喜欢llama-factory。
 
 
 ### llama-factory环境安装
 ```
-
+conda create -n llama-factory python=3.11 -y
+git clone --depth 1 https://github.com/hiyouga/LLaMA-Factory.git
+cd LLaMA-Factory
+pip install -e ".[torch,metrics]"
 ```
 
 ### 数据准备
 llama-factory支持两种数据格式， alpaca和sharegpt格式。
 
-下载数据 https://universe.roboflow.com/peter-robicheaux/pallet-load-manifest-json-2/dataset/18
+首先下载数据 https://universe.roboflow.com/peter-robicheaux/pallet-load-manifest-json-2/dataset/18
 ```
 {"image":"IMG_3128_jpg.rf.050d52dec36d353a43a9eba664c28ad3.jpg","prefix":"<JSON>","suffix":"{\"route\": \"D452-SU-275\",\"pallet_number\": \"15\",\"delivery_date\": \"1/11/2024\",\"load\": \"1\",\"dock\": \"D05\",\"shipment_id\": \"K77912144793\",\"destination\": \"82135 Robert Harbors Apt. 285, Marquezhaven, AZ 68208\",\"asn_number\": \"1338742991\",\"salesman\": \"KIMBERLY GARCIA\",\"products\": [{\"description\": \"223606 - CASE OF MICROFIBER SPONGES\",\"cases\": \"4\",\"sales_units\": \"4\",\"layers\": \"5\"},{\"description\": \"728495 - BOX OF STAIN REMOVERS\",\"cases\": \"64\",\"sales_units\": \"2\",\"layers\": \"4\"},{\"description\": \"112233 - CASE OF DISH SOAP\",\"cases\": \"8\",\"sales_units\": \"2\",\"layers\": \"1\"},{\"description\": \"847395 - CASE OF SQUEEGEES\",\"cases\": \"4\",\"sales_units\": \"32\",\"layers\": \"1\"},{\"description\": \"963741 - 12PK OF DISINFECTANT WIPES\",\"cases\": \"8\",\"sales_units\": \"2\",\"layers\": \"2\"},{\"description\": \"258963 - CASE OF MULTI-SURFACE SPRAY\",\"cases\": \"32\",\"sales_units\": \"32\",\"layers\": \"4\"}],\"total_cases\": \"120\",\"total_units\": \"74\",\"total_layers\": \"17\",\"printed_date\": \"12/05/2024 11:29\",\"page_number\": \"59\"}"}
 ```
-jsonl文件每条都是这种json格式，需要写个脚本转化为sharegpt格式，
+
+jsonl文件每条都是这种json格式，需要写个脚本转化为sharegpt格式，完整代码参考convert2sharegpt.py
 
 ```
 def format_data(image_dir, entry):
@@ -97,7 +101,7 @@ Provide only the JSON output based on the extracted information. Avoid additiona
     return message
 ```
 
-转换之后效果
+转换之后效果:
 ```
 [
     {
@@ -120,13 +124,15 @@ Provide only the JSON output based on the extracted information. Avoid additiona
 以清单任务识别任务
 
 ### 模型微调
-启动llama-factory
+GUI方式启动llama-factory
 
 ```
+conda activate llama-factory
 llamafactory-cli webui
 ```
 ![alt text](images/image-1.png)
 
+![alt text](images/training_loss.png)
 
 ### 导出
 
